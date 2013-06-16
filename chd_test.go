@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestCDHBuilder(t *testing.T) {
-	d := map[string]string{
+var (
+	sampleData = map[string]string{
 		"one":   "1",
 		"two":   "2",
 		"three": "3",
@@ -16,15 +16,37 @@ func TestCDHBuilder(t *testing.T) {
 		"six":   "6",
 		"seven": "7",
 	}
+)
+
+func TestCDHBuilder(t *testing.T) {
 	b := NewCHDBuilder()
-	for k, v := range d {
+	for k, v := range sampleData {
 		b.Add([]byte(k), []byte(v))
 	}
 	c, err := b.Build()
 	assert.NoError(t, err)
 	assert.Equal(t, 7, len(c.table))
-	for k, v := range d {
+	for k, v := range sampleData {
 		assert.Equal(t, []byte(v), c.Get([]byte(k)))
+	}
+	assert.Nil(t, c.Get([]byte("monkey")))
+}
+
+func TestCDHSerialization(t *testing.T) {
+	cb := NewCHDBuilder()
+	for k, v := range sampleData {
+		cb.Add([]byte(k), []byte(v))
+	}
+	m, err := cb.Build()
+	assert.NoError(t, err)
+	b, err := m.Serialize()
+	assert.NoError(t, err)
+	n, err := UnmarshalCHD(b)
+	assert.Equal(t, n.r, m.r)
+	assert.Equal(t, n.indices, m.indices)
+	assert.Equal(t, n.table, m.table)
+	for k, v := range sampleData {
+		assert.Equal(t, []byte(v), n.Get([]byte(k)))
 	}
 }
 

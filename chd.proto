@@ -1,0 +1,13 @@
+package mph;
+
+message CHDProto {
+  repeated uint64 r = 1;
+  repeated uint64 indicies = 2;
+
+  message KeyValue {
+    required bytes key = 1;
+    required bytes value = 2;
+  }
+
+  repeated KeyValue table = 6;
+}

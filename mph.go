@@ -16,5 +16,8 @@ type Iterator interface {
 // A hash table reader interface.
 type Hash interface {
 	Get(key []byte) []byte
+	// Iterate over the entries in the hash table.
 	Iterate() Iterator
+	// Serialize the hash table.
+	Marshal() ([]byte, error)
 }

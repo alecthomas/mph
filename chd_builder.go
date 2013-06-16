@@ -57,14 +57,17 @@ func (b bucketVector) Len() int           { return len(b) }
 func (b bucketVector) Less(i, j int) bool { return len(b[i].kv) > len(b[j].kv) }
 func (b bucketVector) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
+// Build a new CDH MPH.
 type CHDBuilder struct {
 	kv []*CHDKeyValue
 }
 
+// Create a new builder.
 func NewCHDBuilder() *CHDBuilder {
 	return &CHDBuilder{}
 }
 
+// Add a key and value to the hash table.
 func (b *CHDBuilder) Add(key []byte, value []byte) {
 	b.kv = append(b.kv, &CHDKeyValue{key, value})
 }
