@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/alecthomas/mph"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -52,8 +53,16 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("build: %s\n", time.Now().Sub(startTime))
-	for i := m.Iterate(); i != nil; i = i.Next() {
-		v := i.Get()
-		fmt.Printf("%s\n", v.Key())
+	// for i := m.Iterate(); i != nil; i = i.Next() {
+	// 	v := i.Get()
+	// 	fmt.Printf("%s\n", v.Key())
+	// }
+	b, err := m.Serialize()
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile("wikipedia.chd", b, 0666)
+	if err != nil {
+		panic(err)
 	}
 }

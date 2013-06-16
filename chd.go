@@ -31,8 +31,11 @@ func UnmarshalCHD(b []byte) (*CHD, error) {
 		r:       pb.GetR(),
 		indices: pb.GetIndicies(),
 	}
-	for _, kv := range pb.GetTable() {
-		c.table = append(c.table, &CHDKeyValue{key: kv.GetKey(), value: kv.GetValue()})
+	keys := pb.GetKeys()
+	values := pb.GetValues()
+	for i, k := range keys {
+		v := values[i]
+		c.table = append(c.table, &CHDKeyValue{key: k, value: v})
 	}
 	return c, nil
 }
@@ -68,14 +71,17 @@ func (c *CHD) Iterate() Iterator {
 
 // Serialize the CHD as a protobuf. See chd.proto for details.
 func (c *CHD) Serialize() ([]byte, error) {
-	table := []*CHDProto_KeyValue{}
-	for _, kv := range c.table {
-		table = append(table, &CHDProto_KeyValue{Key: kv.key, Value: kv.value})
+	keys := make([][]byte, len(c.table))
+	values := make([][]byte, len(c.table))
+	for i, kv := range c.table {
+		keys[i] = kv.key
+		values[i] = kv.value
 	}
 	pb := &CHDProto{
 		R:        c.r,
 		Indicies: c.indices,
-		Table:    table,
+		Keys:     keys,
+		Values:   values,
 	}
 	return proto.Marshal(pb)
 }

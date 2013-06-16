@@ -14,10 +14,11 @@ var _ = &json.SyntaxError{}
 var _ = math.Inf
 
 type CHDProto struct {
-	R                []uint64             `protobuf:"varint,1,rep,name=r" json:"r,omitempty"`
-	Indicies         []uint64             `protobuf:"varint,2,rep,name=indicies" json:"indicies,omitempty"`
-	Table            []*CHDProto_KeyValue `protobuf:"bytes,6,rep,name=table" json:"table,omitempty"`
-	XXX_unrecognized []byte               `json:"-"`
+	R                []uint64 `protobuf:"varint,1,rep,name=r" json:"r,omitempty"`
+	Indicies         []uint64 `protobuf:"varint,2,rep,name=indicies" json:"indicies,omitempty"`
+	Keys             [][]byte `protobuf:"bytes,3,rep,name=keys" json:"keys,omitempty"`
+	Values           [][]byte `protobuf:"bytes,4,rep,name=values" json:"values,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
 }
 
 func (m *CHDProto) Reset()         { *m = CHDProto{} }
@@ -38,33 +39,16 @@ func (m *CHDProto) GetIndicies() []uint64 {
 	return nil
 }
 
-func (m *CHDProto) GetTable() []*CHDProto_KeyValue {
+func (m *CHDProto) GetKeys() [][]byte {
 	if m != nil {
-		return m.Table
+		return m.Keys
 	}
 	return nil
 }
 
-type CHDProto_KeyValue struct {
-	Key              []byte `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
-	Value            []byte `protobuf:"bytes,2,req,name=value" json:"value,omitempty"`
-	XXX_unrecognized []byte `json:"-"`
-}
-
-func (m *CHDProto_KeyValue) Reset()         { *m = CHDProto_KeyValue{} }
-func (m *CHDProto_KeyValue) String() string { return proto.CompactTextString(m) }
-func (*CHDProto_KeyValue) ProtoMessage()    {}
-
-func (m *CHDProto_KeyValue) GetKey() []byte {
+func (m *CHDProto) GetValues() [][]byte {
 	if m != nil {
-		return m.Key
-	}
-	return nil
-}
-
-func (m *CHDProto_KeyValue) GetValue() []byte {
-	if m != nil {
-		return m.Value
+		return m.Values
 	}
 	return nil
 }

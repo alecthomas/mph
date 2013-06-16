@@ -6,7 +6,8 @@ This library provides [Minimal Perfect Hashing](http://en.wikipedia.org/wiki/Per
 
 Primarily, extremely efficient access to static datasets, such as geographical data, NLP data sets, etc.
 
-Typically, the MPH would be used as a fast index into the larger data set:
+## How would it be used?
 
-1. Generate MPH from static data.
-2. Serialize MPH to disk.
+Typically, the hash table would be used as a fast index into a (much) larger data set, with values in the hash table being file offsets or similar.
+
+The hash tables can be serialized.
