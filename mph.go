@@ -1,4 +1,15 @@
+// A Go implementation of a minimal perfect hashing algorithm.
+//
+// This package is the interface. See github.com/alecthomas/mph/chd for an
+// implementation of the compress, hash and displace MPH algorithm.
+//
+// See http://godoc.org/github.com/alecthomas/mph for documentation.
+//
 package mph
+
+import (
+	"io"
+)
 
 // A hash table entry.
 type Entry interface {
@@ -19,5 +30,5 @@ type Hash interface {
 	// Iterate over the entries in the hash table.
 	Iterate() Iterator
 	// Serialize the hash table.
-	Marshal() ([]byte, error)
+	Write(w io.Writer) error
 }

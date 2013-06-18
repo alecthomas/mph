@@ -3,9 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/alecthomas/mph"
+	"github.com/alecthomas/mph/chd"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -18,7 +17,7 @@ func main() {
 	}
 	startTime := time.Now()
 	r := bufio.NewReader(rf)
-	chd := mph.NewCHDBuilder()
+	mph := chd.Builder()
 	last := ""
 	offset := int64(0)
 	start := offset
@@ -38,7 +37,7 @@ func main() {
 		name := row[1]
 		if name != last {
 			v := fmt.Sprintf("%d", start)
-			chd.Add([]byte(last), []byte(v))
+			mph.Add([]byte(last), []byte(v))
 			// fmt.Printf("added %s\n", last)
 			last = name
 			start = offset
@@ -48,7 +47,7 @@ func main() {
 	fmt.Printf("load: %s\n", time.Now().Sub(startTime))
 	println("finished")
 	startTime = time.Now()
-	m, err := chd.Build()
+	m, err := mph.Build()
 	if err != nil {
 		panic(err)
 	}
@@ -57,12 +56,15 @@ func main() {
 	// 	v := i.Get()
 	// 	fmt.Printf("%s\n", v.Key())
 	// }
-	b, err := m.Serialize()
+	w, err := os.Create("wikipedia.chd")
+	defer w.Close()
 	if err != nil {
 		panic(err)
 	}
-	err = ioutil.WriteFile("wikipedia.chd", b, 0666)
+	wb := bufio.NewWriter(w)
+	err = m.Marshal(wb)
 	if err != nil {
 		panic(err)
 	}
+	wb.Flush()
 }

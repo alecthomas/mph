@@ -1,8 +1,0 @@
-package mph;
-
-message CHDProto {
-  repeated uint64 r = 1;
-  repeated uint64 indicies = 2;
-  repeated bytes keys = 3;
-  repeated bytes values = 4;
-}

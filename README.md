@@ -17,7 +17,7 @@ The hash tables can be serialized.
 Building and serializing an MPH hash table (error checking omitted for clarity):
 
 ```go
-b := mph.NewCHDBuilder()
+b := chd.Builder()
 for k, v := range data {
     b.Add([]byte(k), []byte(v))
 }
@@ -37,3 +37,5 @@ if v == nil {
     // Key not found
 }
 ```
+
+The [API documentation](http://godoc.org/github.com/alecthomas/mph) has more details.

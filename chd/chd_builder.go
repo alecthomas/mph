@@ -1,51 +1,50 @@
-package mph
+package chd
 
 import (
 	"errors"
 	"fmt"
-	"hash/crc64"
+	"hash/fnv"
 	"math/rand"
 	"sort"
 	"time"
 )
 
-type CHDHasher struct {
+type chdHasher struct {
 	r       []uint64
 	size    uint64
 	buckets uint64
 	rand    *rand.Rand
 }
 
-var (
-	crc64table = crc64.MakeTable(crc64.ECMA)
-)
-
-func CDHHash(b []byte) uint64 {
-	return crc64.Checksum(b, crc64table)
+func chdHash(b []byte) uint64 {
+	h := fnv.New64a()
+	h.Write(b)
+	return h.Sum64()
 }
 
-type CHDKeyValue struct {
+type chdEntry struct {
 	key   []byte
 	value []byte
 }
 
-func (c *CHDKeyValue) Key() []byte {
+func (c *chdEntry) Key() []byte {
 	return c.key
 }
 
-func (c *CHDKeyValue) Value() []byte {
+func (c *chdEntry) Value() []byte {
 	return c.value
 }
 
 type bucket struct {
-	index uint64
-	kv    []*CHDKeyValue
+	index  uint64
+	keys   [][]byte
+	values [][]byte
 }
 
 func (b *bucket) String() string {
 	a := "bucket{"
-	for _, kv := range b.kv {
-		a += string(kv.key) + ", "
+	for _, k := range b.keys {
+		a += string(k) + ", "
 	}
 	return a + "}"
 }
@@ -54,33 +53,33 @@ func (b *bucket) String() string {
 type bucketVector []bucket
 
 func (b bucketVector) Len() int           { return len(b) }
-func (b bucketVector) Less(i, j int) bool { return len(b[i].kv) > len(b[j].kv) }
+func (b bucketVector) Less(i, j int) bool { return len(b[i].keys) > len(b[j].keys) }
 func (b bucketVector) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // Build a new CDH MPH.
 type CHDBuilder struct {
-	kv []*CHDKeyValue
+	kv []*chdEntry
 }
 
-// Create a new builder.
-func NewCHDBuilder() *CHDBuilder {
+// Create a new CHD hash table builder.
+func Builder() *CHDBuilder {
 	return &CHDBuilder{}
 }
 
 // Add a key and value to the hash table.
 func (b *CHDBuilder) Add(key []byte, value []byte) {
-	b.kv = append(b.kv, &CHDKeyValue{key, value})
+	b.kv = append(b.kv, &chdEntry{key, value})
 }
 
 // Try to find a hash function that does not cause collisions with table, when
 // applied to the keys in the bucket.
-func tryHash(hasher *CHDHasher, seen map[uint64]bool, table []*CHDKeyValue, indices []uint64, bucket *bucket, ri, r uint64) bool {
+func tryHash(hasher *chdHasher, seen map[uint64]bool, keys [][]byte, values [][]byte, indices []uint16, bucket *bucket, ri uint16, r uint64) bool {
 	// Track duplicates within this bucket.
 	duplicate := make(map[uint64]bool)
 	// Make hashes for each entry in the bucket.
-	hashes := make([]uint64, len(bucket.kv))
-	for i, kv := range bucket.kv {
-		h := hasher.Table(r, kv.key)
+	hashes := make([]uint64, len(bucket.keys))
+	for i, k := range bucket.keys {
+		h := hasher.Table(r, k)
 		hashes[i] = h
 		if seen[h] {
 			return false
@@ -101,7 +100,8 @@ func tryHash(hasher *CHDHasher, seen map[uint64]bool, table []*CHDKeyValue, indi
 
 	// Update the the hash table.
 	for i, h := range hashes {
-		table[h] = bucket.kv[i]
+		keys[h] = bucket.keys[i]
+		values[h] = bucket.values[i]
 	}
 	return true
 }
@@ -109,19 +109,15 @@ func tryHash(hasher *CHDHasher, seen map[uint64]bool, table []*CHDKeyValue, indi
 func (b *CHDBuilder) Build() (*CHD, error) {
 	n := uint64(len(b.kv))
 	m := n / 2
-	// We need a minimum bucket size so we get enough variability in the lower
-	// bits after modulo is applied.
-	for m < 10 {
-		m++
-	}
 
-	table := make([]*CHDKeyValue, n)
-	hasher := NewCHDHasher(n, m)
+	keys := make([][]byte, n)
+	values := make([][]byte, n)
+	hasher := newCHDHasher(n, m)
 	buckets := make(bucketVector, m)
-	indices := make([]uint64, m)
+	indices := make([]uint16, m)
 	// An extra check to make sure we don't use an invalid index
 	for i := range indices {
-		indices[i] = ^uint64(0)
+		indices[i] = ^uint16(0)
 	}
 	// Have we seen a hash before?
 	seen := make(map[uint64]bool)
@@ -137,7 +133,8 @@ func (b *CHDBuilder) Build() (*CHD, error) {
 		oh := hasher.HashIndexFromKey(kv.key)
 
 		buckets[oh].index = oh
-		buckets[oh].kv = append(buckets[oh].kv, kv)
+		buckets[oh].keys = append(buckets[oh].keys, kv.key)
+		buckets[oh].values = append(buckets[oh].values, kv.value)
 	}
 
 	// Order buckets by size (retaining the hash index)
@@ -145,27 +142,26 @@ func (b *CHDBuilder) Build() (*CHD, error) {
 	sort.Sort(buckets)
 nextBucket:
 	for i, bucket := range buckets {
-		if len(bucket.kv) == 0 {
+		if len(bucket.keys) == 0 {
 			continue
 		}
 
 		// Check existing hash functions.
 		for ri, r := range hasher.r {
-			if tryHash(hasher, seen, table, indices, &bucket, uint64(ri), r) {
+			if tryHash(hasher, seen, keys, values, indices, &bucket, uint16(ri), r) {
 				continue nextBucket
 			}
 		}
 
 		// Keep trying new functions until we get one that does not collide.
-		// The number of retries here is very high due to our use of the IEEE
-		// checksum function. If we use a better hashing function, less tries
-		// are necessary, but retrieval is quite a bit slower.
+		// The number of retries here is very high to allow a very high
+		// probability of not getting collisions.
 		for i := 0; i < 10000000; i++ {
 			if i > collisions {
 				collisions = i
 			}
 			ri, r := hasher.Generate()
-			if tryHash(hasher, seen, table, indices, &bucket, ri, r) {
+			if tryHash(hasher, seen, keys, values, indices, &bucket, ri, r) {
 				hasher.Add(r)
 				continue nextBucket
 			}
@@ -174,7 +170,7 @@ nextBucket:
 		// Failed to find a hash function with no collisions.
 		return nil, errors.New(fmt.Sprintf(
 			"failed to find a collision-free hash function after ~10000000 attempts, for bucket %d/%d with %d entries: %s",
-			i, len(buckets), len(bucket.kv), &bucket))
+			i, len(buckets), len(bucket.keys), &bucket))
 	}
 
 	// println("max bucket collisions:", collisions)
@@ -184,44 +180,45 @@ nextBucket:
 	return &CHD{
 		r:       hasher.r,
 		indices: indices,
-		table:   table,
+		keys:    keys,
+		values:  values,
 	}, nil
 }
 
-func NewCHDHasher(size uint64, buckets uint64) *CHDHasher {
+func newCHDHasher(size uint64, buckets uint64) *chdHasher {
 	rs := rand.NewSource(time.Now().UnixNano())
-	c := &CHDHasher{size: size, buckets: buckets, rand: rand.New(rs)}
+	c := &chdHasher{size: size, buckets: buckets, rand: rand.New(rs)}
 	c.Add(c.random())
 	return c
 }
 
-func (c *CHDHasher) random() uint64 {
+func (c *chdHasher) random() uint64 {
 	return (uint64(c.rand.Uint32()) << 32) | uint64(c.rand.Uint32())
 }
 
 // Hash index from key.
-func (h *CHDHasher) HashIndexFromKey(b []byte) uint64 {
-	return (CDHHash(b) ^ h.r[0]) % h.buckets
+func (h *chdHasher) HashIndexFromKey(b []byte) uint64 {
+	return (chdHash(b) ^ h.r[0]) % h.buckets
 }
 
 // Table hash from random value and key. Generate() returns these random values.
-func (h *CHDHasher) Table(r uint64, b []byte) uint64 {
-	return (CDHHash(b) ^ h.r[0] ^ r) % h.size
+func (h *chdHasher) Table(r uint64, b []byte) uint64 {
+	return (chdHash(b) ^ h.r[0] ^ r) % h.size
 }
 
-func (c *CHDHasher) Generate() (uint64, uint64) {
+func (c *chdHasher) Generate() (uint16, uint64) {
 	return c.Len(), c.random()
 }
 
 // Add a random value generated by Generate().
-func (c *CHDHasher) Add(r uint64) {
+func (c *chdHasher) Add(r uint64) {
 	c.r = append(c.r, r)
 }
 
-func (c *CHDHasher) Len() uint64 {
-	return uint64(len(c.r))
+func (c *chdHasher) Len() uint16 {
+	return uint16(len(c.r))
 }
 
-func (h *CHDHasher) String() string {
-	return fmt.Sprintf("CHDHasher{size: %d, buckets: %d, r: %v}", h.size, h.buckets, h.r)
+func (h *chdHasher) String() string {
+	return fmt.Sprintf("chdHasher{size: %d, buckets: %d, r: %v}", h.size, h.buckets, h.r)
 }
