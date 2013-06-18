@@ -1,4 +1,5 @@
-// A Go implementation of minimal perfect hashing (MPH).
+// A Go implementation of the compress, hash and displace (CHD) minimal
+// perfect hash algorithm.
 //
 // This package implements the compress, hash and displace (CHD) algorithm
 // described here: http://cmph.sourceforge.net/papers/esa09.pdf
