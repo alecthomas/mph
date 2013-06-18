@@ -12,6 +12,7 @@ import (
 	"github.com/alecthomas/mph"
 	"github.com/alecthomas/unsafeslice"
 	"io"
+	"io/ioutil"
 )
 
 // CHD hash table lookup.
@@ -26,8 +27,12 @@ type CHD struct {
 }
 
 // Read a serialized CHD.
-func Unmarshal(r io.Reader) (*CHD, error) {
-	return nil, nil
+func Read(r io.Reader) (*CHD, error) {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return Mmap(b)
 }
 
 type byteSliceIterator struct {
