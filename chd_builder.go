@@ -1,4 +1,4 @@
-package chd
+package mph
 
 import (
 	"errors"
@@ -20,19 +20,6 @@ func chdHash(b []byte) uint64 {
 	h := fnv.New64a()
 	h.Write(b)
 	return h.Sum64()
-}
-
-type chdEntry struct {
-	key   []byte
-	value []byte
-}
-
-func (c *chdEntry) Key() []byte {
-	return c.key
-}
-
-func (c *chdEntry) Value() []byte {
-	return c.value
 }
 
 type bucket struct {
@@ -58,17 +45,17 @@ func (b bucketVector) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // Build a new CDH MPH.
 type CHDBuilder struct {
-	kv []*chdEntry
+	kv []*Entry
 }
 
 // Create a new CHD hash table builder.
-func Builder() *CHDBuilder {
+func Build() *CHDBuilder {
 	return &CHDBuilder{}
 }
 
 // Add a key and value to the hash table.
 func (b *CHDBuilder) Add(key []byte, value []byte) {
-	b.kv = append(b.kv, &chdEntry{key, value})
+	b.kv = append(b.kv, &Entry{key, value})
 }
 
 // Try to find a hash function that does not cause collisions with table, when

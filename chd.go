@@ -2,19 +2,31 @@
 // perfect hash algorithm.
 //
 // This package implements the compress, hash and displace (CHD) algorithm
-// described here: http://cmph.sourceforge.net/papers/esa09.pdf
+// described here: http://csourceforge.net/papers/esa09.pdf
 //
 // See https://github.com/alecthomas/mph for source
-package chd
+package mph
 
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/alecthomas/mph"
 	"github.com/alecthomas/unsafeslice"
 	"io"
 	"io/ioutil"
 )
+
+type Entry struct {
+	key   []byte
+	value []byte
+}
+
+func (c *Entry) Key() []byte {
+	return c.key
+}
+
+func (c *Entry) Value() []byte {
+	return c.value
+}
 
 // CHD hash table lookup.
 type CHD struct {
@@ -104,11 +116,11 @@ func (c *CHD) Len() int {
 }
 
 // Iterate over entries in the hash table.
-func (c *CHD) Iterate() mph.Iterator {
+func (c *CHD) Iterate() *Iterator {
 	if len(c.keys) == 0 {
 		return nil
 	}
-	return &chdIterator{c: c}
+	return &Iterator{c: c}
 }
 
 // Serialize the CHD. The serialized form is conducive to mmapped access. See
@@ -148,16 +160,16 @@ func (c *CHD) Write(w io.Writer) error {
 	return nil
 }
 
-type chdIterator struct {
+type Iterator struct {
 	i int
 	c *CHD
 }
 
-func (c *chdIterator) Get() mph.Entry {
-	return &chdEntry{key: c.c.keys[c.i], value: c.c.values[c.i]}
+func (c *Iterator) Get() *Entry {
+	return &Entry{key: c.c.keys[c.i], value: c.c.values[c.i]}
 }
 
-func (c *chdIterator) Next() mph.Iterator {
+func (c *Iterator) Next() *Iterator {
 	c.i++
 	if c.i >= len(c.c.keys) {
 		return nil

@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/alecthomas/mph/chd"
+	"github.com/alecthomas/mph"
 	"io"
 	"os"
 	"strings"
@@ -19,7 +19,7 @@ func main() {
 
 	startTime := time.Now()
 	r := bufio.NewReader(rf)
-	mph := chd.Builder()
+	mph := mph.Builder()
 	last := ""
 	offset := int64(0)
 	start := offset
