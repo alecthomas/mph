@@ -15,6 +15,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer rf.Close()
+
 	startTime := time.Now()
 	r := bufio.NewReader(rf)
 	mph := chd.Builder()
@@ -62,7 +64,7 @@ func main() {
 		panic(err)
 	}
 	wb := bufio.NewWriter(w)
-	err = m.Marshal(wb)
+	err = m.Write(wb)
 	if err != nil {
 		panic(err)
 	}

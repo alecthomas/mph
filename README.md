@@ -6,6 +6,8 @@ This library provides [Minimal Perfect Hashing](http://en.wikipedia.org/wiki/Per
 
 Primarily, extremely efficient access to static datasets, such as geographical data, NLP data sets, etc.
 
+On my 2012 vintage MacBook Air, a benchmark against a wikipedia index with 300K keys against a 2GB TSV dump shows ~200ns access time.
+
 ## How would it be used?
 
 Typically, the hash table would be used as a fast index into a (much) larger data set, with values in the hash table being file offsets or similar.

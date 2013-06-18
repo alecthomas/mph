@@ -93,6 +93,10 @@ func (c *CHD) Get(key []byte) []byte {
 	return v
 }
 
+func (c *CHD) Len() int {
+	return len(c.keys)
+}
+
 // Iterate over entries in the hash table.
 func (c *CHD) Iterate() mph.Iterator {
 	if len(c.keys) == 0 {
