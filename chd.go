@@ -23,13 +23,12 @@
 //		    // Key not found
 //		}
 //
-// See https://github.com/alecthomas/mph for source
+// See https://github.com/alecthomas/mph for source.
 package mph
 
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/alecthomas/unsafeslice"
 	"io"
 	"io/ioutil"
 )
@@ -51,7 +50,8 @@ func (c *Entry) Value() []byte {
 type CHD struct {
 	// Random hash function table.
 	r []uint64
-	// Array of indices into hash function table r
+	// Array of indices into hash function table r. We assume there aren't
+	// more than 2^16 hash functions O_o
 	indices []uint16
 	// Final table of values.
 	keys   [][]byte
@@ -67,17 +67,38 @@ func Read(r io.Reader) (*CHD, error) {
 	return Mmap(b)
 }
 
-type byteSliceIterator struct {
+// Read values and typed vectors from a byte slice without copying where possible.
+type sliceReader struct {
 	b          []byte
 	start, end uint64
 }
 
-func (b *byteSliceIterator) Read(size uint64) []byte {
+func (b *sliceReader) Read(size uint64) []byte {
 	b.start, b.end = b.end, b.end+size
 	return b.b[b.start:b.end]
 }
 
-func (b *byteSliceIterator) ReadInt() uint64 {
+func (b *sliceReader) ReadUint64Array(n uint64) []uint64 {
+	b.start, b.end = b.end, b.end+n*8
+	out := make([]uint64, n)
+	buf := b.b[b.start:b.end]
+	for i := 0; i < len(buf); i += 8 {
+		out[i>>3] = binary.LittleEndian.Uint64(buf[i : i+8])
+	}
+	return out
+}
+
+func (b *sliceReader) ReadUint16Array(n uint64) []uint16 {
+	b.start, b.end = b.end, b.end+n*2
+	out := make([]uint16, n)
+	buf := b.b[b.start:b.end]
+	for i := 0; i < len(buf); i += 2 {
+		out[i>>1] = binary.LittleEndian.Uint16(buf[i : i+2])
+	}
+	return out
+}
+
+func (b *sliceReader) ReadInt() uint64 {
 	return uint64(binary.LittleEndian.Uint32(b.Read(4)))
 }
 
@@ -85,14 +106,15 @@ func (b *byteSliceIterator) ReadInt() uint64 {
 func Mmap(b []byte) (*CHD, error) {
 	c := &CHD{}
 
-	bi := &byteSliceIterator{b: b}
+	bi := &sliceReader{b: b}
 
 	// Read vector of hash functions.
 	rl := bi.ReadInt()
-	c.r = unsafeslice.Uint64SliceFromByteSlice(bi.Read(rl * 8))
+	c.r = bi.ReadUint64Array(rl)
 
+	// Read hash function indices.
 	il := bi.ReadInt()
-	c.indices = unsafeslice.Uint16SliceFromByteSlice(bi.Read(il * 2))
+	c.indices = bi.ReadUint16Array(il)
 
 	el := bi.ReadInt()
 
@@ -115,7 +137,7 @@ func (c *CHD) Get(key []byte) []byte {
 	h := chdHash(key) ^ r0
 	i := h % uint64(len(c.indices))
 	ri := c.indices[i]
-	// This can happen if there were unassigned slots in the hash table.
+	// This can occur if there were unassigned slots in the hash table.
 	if ri >= uint16(len(c.r)) {
 		return nil
 	}

@@ -1,10 +1,10 @@
+import array
 import functools
 import itertools
+import mmap
+import struct
 
 import pyhash
-
-
-from chd_pb2 import CHDProto
 
 
 # FNV1a with the same seed as Go.
@@ -13,13 +13,11 @@ chd_hash = functools.partial(pyhash.fnv1a_64(), seed=14695981039346656037)
 
 class CHD(object):
     def __init__(self, filename):
+        len = struct.Struct('<L')
         with open(filename) as fd:
-            pb = CHDProto()
-            pb.ParseFromString(fd.read())
-            self._r = pb.r
-            self._indices = pb.indices
-            self._keys = pb.keys
-            self._values = pb.values
+            self._mmap = mmap.mmap(fd.fileno(), 0, prot=mmap.PROT_READ)
+            rl = len.unpack_from(self._mmap[:4])
+            self._r = array.array('<L')
 
     def __getitem__(self, key):
         r0 = self._r[0]

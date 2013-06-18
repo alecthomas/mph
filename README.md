@@ -4,9 +4,9 @@ This library provides [Minimal Perfect Hashing](http://en.wikipedia.org/wiki/Per
 
 ## What is this useful for?
 
-Primarily, extremely efficient access to static datasets, such as geographical data, NLP data sets, etc.
+Primarily, extremely efficient access to potentially very large static datasets, such as geographical data, NLP data sets, etc.
 
-On my 2012 vintage MacBook Air, a benchmark against a wikipedia index with 300K keys against a 2GB TSV dump shows ~200ns access time.
+On my 2012 vintage MacBook Air, a benchmark against a wikipedia index with 300K keys against a 2GB TSV dump takes about ~200ns per lookup.
 
 ## How would it be used?
 
