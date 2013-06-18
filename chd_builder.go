@@ -49,7 +49,7 @@ type CHDBuilder struct {
 }
 
 // Create a new CHD hash table builder.
-func Build() *CHDBuilder {
+func Builder() *CHDBuilder {
 	return &CHDBuilder{}
 }
 
