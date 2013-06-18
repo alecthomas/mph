@@ -1,8 +1,27 @@
 // A Go implementation of the compress, hash and displace (CHD) minimal
 // perfect hash algorithm.
 //
-// This package implements the compress, hash and displace (CHD) algorithm
-// described here: http://csourceforge.net/papers/esa09.pdf
+// See http://csourceforge.net/papers/esa09.pdf for details.
+//
+// To create and serialize a hash table:
+//
+//		b := mph.Builder()
+// 		for k, v := range data {
+// 			b.Add([]byte(k), []byte(v))
+// 		}
+// 		h, _ := b.Build()
+// 		w, _ := os.Create("data.idx")
+// 		b, _ := h.Write(w)
+//
+// To read from the hash table:
+//
+//		r, _ := os.Open("data.idx")
+//		h, _ := h.Read(r)
+//
+//		v := h.Get([]byte("some key"))
+//		if v == nil {
+//		    // Key not found
+//		}
 //
 // See https://github.com/alecthomas/mph for source
 package mph

@@ -19,25 +19,27 @@ The hash tables can be serialized.
 Building and serializing an MPH hash table (error checking omitted for clarity):
 
 ```go
-b := chd.Builder()
+b := mph.Builder()
 for k, v := range data {
     b.Add([]byte(k), []byte(v))
 }
 h, _ := b.Build()
-b, _ := h.Marshal()
-ioutil.WriteFile("data.idx", b, 0666)
+w, _ := os.Create("data.idx")
+b, _ := h.Write(w)
 ```
 
 Deserializing the hash table and performing lookups:
 
 ```go
-b, _ := ioutil.ReadFile("data.idx")
-h, _ := h.Unmarshal(b)
+r, _ := os.Open("data.idx")
+h, _ := h.Read(r)
 
 v := h.Get([]byte("some key"))
 if v == nil {
     // Key not found
 }
 ```
+
+The implementation can also utilize mmap to avoid copying, etc.
 
 The [API documentation](http://godoc.org/github.com/alecthomas/mph) has more details.
