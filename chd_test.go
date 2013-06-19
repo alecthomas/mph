@@ -66,7 +66,9 @@ func TestCHDSerialization(t *testing.T) {
 	w := &bytes.Buffer{}
 	err = m.Write(w)
 	assert.NoError(t, err)
+
 	n, err := Mmap(w.Bytes())
+	assert.NoError(t, err)
 	assert.Equal(t, n.r, m.r)
 	assert.Equal(t, n.indices, m.indices)
 	assert.Equal(t, n.keys, m.keys)
