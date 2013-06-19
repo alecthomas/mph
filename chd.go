@@ -7,7 +7,7 @@
 //
 //		b := mph.Builder()
 // 		for k, v := range data {
-// 			b.Add([]byte(k), []byte(v))
+// 			b.Add(k, v)
 // 		}
 // 		h, _ := b.Build()
 // 		w, _ := os.Create("data.idx")
@@ -22,6 +22,9 @@
 //		if v == nil {
 //		    // Key not found
 //		}
+//
+// MMAP is also indirectly supported, by deserializing from a byte
+// slice and slicing the keys and values.
 //
 // See https://github.com/alecthomas/mph for source.
 package mph

@@ -1,4 +1,4 @@
-# A Go library implementing Minimal Perfect Hashing
+# Minimal Perfect Hashing for Go
 
 This library provides [Minimal Perfect Hashing](http://en.wikipedia.org/wiki/Perfect_hash_function) (MPH) using the [Compress, Hash and Displace](http://cmph.sourceforge.net/papers/esa09.pdf) (CHD) algorithm.
 
@@ -10,9 +10,9 @@ On my 2012 vintage MacBook Air, a benchmark against a wikipedia index with 300K 
 
 ## How would it be used?
 
-Typically, the hash table would be used as a fast index into a (much) larger data set, with values in the hash table being file offsets or similar.
+Typically, the table would be used as a fast index into a (much) larger data set, with values in the table being file offsets or similar.
 
-The hash tables can be serialized. Numeric values are written in little endian form.
+The tables can be serialized. Numeric values are written in little endian form.
 
 ## Example code
 
@@ -21,7 +21,7 @@ Building and serializing an MPH hash table (error checking omitted for clarity):
 ```go
 b := mph.Builder()
 for k, v := range data {
-    b.Add([]byte(k), []byte(v))
+    b.Add(k, v)
 }
 h, _ := b.Build()
 w, _ := os.Create("data.idx")
@@ -40,6 +40,6 @@ if v == nil {
 }
 ```
 
-The implementation can also utilize mmap to avoid copying, etc.
+MMAP is also indirectly supported, by deserializing from a byte slice and slicing the keys and values.
 
 The [API documentation](http://godoc.org/github.com/alecthomas/mph) has more details.
