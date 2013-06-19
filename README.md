@@ -12,7 +12,7 @@ On my 2012 vintage MacBook Air, a benchmark against a wikipedia index with 300K 
 
 Typically, the hash table would be used as a fast index into a (much) larger data set, with values in the hash table being file offsets or similar.
 
-The hash tables can be serialized.
+The hash tables can be serialized. Numeric values are written in little endian form.
 
 ## Example code
 
