@@ -1,5 +1,5 @@
-// A Go implementation of the compress, hash and displace (CHD) minimal
-// perfect hash algorithm.
+// Package mph is a Go implementation of the compress, hash and displace (CHD)
+// minimal perfect hash algorithm.
 //
 // See http://csourceforge.net/papers/esa09.pdf for details.
 //
@@ -70,7 +70,7 @@ func Read(r io.Reader) (*CHD, error) {
 	return Mmap(b)
 }
 
-// Alias the CHD structure over an existing byte region (typically mmapped).
+// Mmap creates a new CHD aliasing the CHD structure over an existing byte region (typically mmapped).
 func Mmap(b []byte) (*CHD, error) {
 	c := &CHD{}
 

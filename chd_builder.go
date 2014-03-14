@@ -155,9 +155,9 @@ nextBucket:
 		}
 
 		// Failed to find a hash function with no collisions.
-		return nil, errors.New(fmt.Sprintf(
+		return nil, fmt.Errorf(
 			"failed to find a collision-free hash function after ~10000000 attempts, for bucket %d/%d with %d entries: %s",
-			i, len(buckets), len(bucket.keys), &bucket))
+			i, len(buckets), len(bucket.keys), &bucket)
 	}
 
 	// println("max bucket collisions:", collisions)
