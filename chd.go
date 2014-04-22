@@ -32,22 +32,11 @@ package mph
 import (
 	"bytes"
 	"encoding/binary"
+	"hash"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 )
-
-type Entry struct {
-	key   []byte
-	value []byte
-}
-
-func (c *Entry) Key() []byte {
-	return c.key
-}
-
-func (c *Entry) Value() []byte {
-	return c.value
-}
 
 // CHD hash table lookup.
 type CHD struct {
@@ -59,6 +48,23 @@ type CHD struct {
 	// Final table of values.
 	keys   [][]byte
 	values [][]byte
+	*hasher
+}
+
+type hasher struct {
+	hasher hash.Hash64
+}
+
+func newHasher() *hasher {
+	return &hasher{
+		hasher: fnv.New64a(),
+	}
+}
+
+func (h *hasher) hash(b []byte) uint64 {
+	h.hasher.Reset()
+	h.hasher.Write(b)
+	return h.hasher.Sum64()
 }
 
 // Read a serialized CHD.
@@ -72,7 +78,9 @@ func Read(r io.Reader) (*CHD, error) {
 
 // Mmap creates a new CHD aliasing the CHD structure over an existing byte region (typically mmapped).
 func Mmap(b []byte) (*CHD, error) {
-	c := &CHD{}
+	c := &CHD{
+		hasher: newHasher(),
+	}
 
 	bi := &sliceReader{b: b}
 
@@ -102,7 +110,7 @@ func Mmap(b []byte) (*CHD, error) {
 // Get an entry from the hash table.
 func (c *CHD) Get(key []byte) []byte {
 	r0 := c.r[0]
-	h := chdHash(key) ^ r0
+	h := c.hash(key) ^ r0
 	i := h % uint64(len(c.indices))
 	ri := c.indices[i]
 	// This can occur if there were unassigned slots in the hash table.
@@ -174,8 +182,8 @@ type Iterator struct {
 	c *CHD
 }
 
-func (c *Iterator) Get() *Entry {
-	return &Entry{key: c.c.keys[c.i], value: c.c.values[c.i]}
+func (c *Iterator) Get() (key []byte, value []byte) {
+	return c.c.keys[c.i], c.c.values[c.i]
 }
 
 func (c *Iterator) Next() *Iterator {

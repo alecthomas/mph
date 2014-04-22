@@ -3,7 +3,6 @@ package mph
 import (
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"math/rand"
 	"sort"
 	"time"
@@ -14,12 +13,7 @@ type chdHasher struct {
 	size    uint64
 	buckets uint64
 	rand    *rand.Rand
-}
-
-func chdHash(b []byte) uint64 {
-	h := fnv.New64a()
-	h.Write(b)
-	return h.Sum64()
+	*hasher
 }
 
 type bucket struct {
@@ -45,7 +39,8 @@ func (b bucketVector) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 
 // Build a new CDH MPH.
 type CHDBuilder struct {
-	kv []*Entry
+	keys   [][]byte
+	values [][]byte
 }
 
 // Create a new CHD hash table builder.
@@ -55,7 +50,8 @@ func Builder() *CHDBuilder {
 
 // Add a key and value to the hash table.
 func (b *CHDBuilder) Add(key []byte, value []byte) {
-	b.kv = append(b.kv, &Entry{key, value})
+	b.keys = append(b.keys, key)
+	b.values = append(b.values, value)
 }
 
 // Try to find a hash function that does not cause collisions with table, when
@@ -94,7 +90,7 @@ func tryHash(hasher *chdHasher, seen map[uint64]bool, keys [][]byte, values [][]
 }
 
 func (b *CHDBuilder) Build() (*CHD, error) {
-	n := uint64(len(b.kv))
+	n := uint64(len(b.keys))
 	m := n / 2
 
 	keys := make([][]byte, n)
@@ -111,17 +107,19 @@ func (b *CHDBuilder) Build() (*CHD, error) {
 	// Used to ensure there are no duplicate keys.
 	duplicates := make(map[string]bool)
 
-	for _, kv := range b.kv {
-		k := string(kv.key)
+	for i := range b.keys {
+		key := b.keys[i]
+		value := b.values[i]
+		k := string(key)
 		if duplicates[k] {
 			return nil, errors.New("duplicate key " + k)
 		}
 		duplicates[k] = true
-		oh := hasher.HashIndexFromKey(kv.key)
+		oh := hasher.HashIndexFromKey(key)
 
 		buckets[oh].index = oh
-		buckets[oh].keys = append(buckets[oh].keys, kv.key)
-		buckets[oh].values = append(buckets[oh].values, kv.value)
+		buckets[oh].keys = append(buckets[oh].keys, key)
+		buckets[oh].values = append(buckets[oh].values, value)
 	}
 
 	// Order buckets by size (retaining the hash index)
@@ -169,12 +167,13 @@ nextBucket:
 		indices: indices,
 		keys:    keys,
 		values:  values,
+		hasher:  newHasher(),
 	}, nil
 }
 
 func newCHDHasher(size uint64, buckets uint64) *chdHasher {
 	rs := rand.NewSource(time.Now().UnixNano())
-	c := &chdHasher{size: size, buckets: buckets, rand: rand.New(rs)}
+	c := &chdHasher{size: size, buckets: buckets, rand: rand.New(rs), hasher: newHasher()}
 	c.Add(c.random())
 	return c
 }
@@ -185,12 +184,12 @@ func (c *chdHasher) random() uint64 {
 
 // Hash index from key.
 func (h *chdHasher) HashIndexFromKey(b []byte) uint64 {
-	return (chdHash(b) ^ h.r[0]) % h.buckets
+	return (h.hash(b) ^ h.r[0]) % h.buckets
 }
 
 // Table hash from random value and key. Generate() returns these random values.
 func (h *chdHasher) Table(r uint64, b []byte) uint64 {
-	return (chdHash(b) ^ h.r[0] ^ r) % h.size
+	return (h.hash(b) ^ h.r[0] ^ r) % h.size
 }
 
 func (c *chdHasher) Generate() (uint16, uint64) {

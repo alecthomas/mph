@@ -3,10 +3,11 @@ package mph
 import (
 	"bufio"
 	"bytes"
-	"github.com/stretchrcom/testify/assert"
 	"io"
 	"os"
 	"testing"
+
+	"github.com/stretchrcom/testify/assert"
 )
 
 var (
