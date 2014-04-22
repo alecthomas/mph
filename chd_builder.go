@@ -13,7 +13,6 @@ type chdHasher struct {
 	size    uint64
 	buckets uint64
 	rand    *rand.Rand
-	*hasher
 }
 
 type bucket struct {
@@ -167,13 +166,12 @@ nextBucket:
 		indices: indices,
 		keys:    keys,
 		values:  values,
-		hasher:  newHasher(),
 	}, nil
 }
 
 func newCHDHasher(size uint64, buckets uint64) *chdHasher {
 	rs := rand.NewSource(time.Now().UnixNano())
-	c := &chdHasher{size: size, buckets: buckets, rand: rand.New(rs), hasher: newHasher()}
+	c := &chdHasher{size: size, buckets: buckets, rand: rand.New(rs)}
 	c.Add(c.random())
 	return c
 }
@@ -184,12 +182,12 @@ func (c *chdHasher) random() uint64 {
 
 // Hash index from key.
 func (h *chdHasher) HashIndexFromKey(b []byte) uint64 {
-	return (h.hash(b) ^ h.r[0]) % h.buckets
+	return (hasher(b) ^ h.r[0]) % h.buckets
 }
 
 // Table hash from random value and key. Generate() returns these random values.
 func (h *chdHasher) Table(r uint64, b []byte) uint64 {
-	return (h.hash(b) ^ h.r[0] ^ r) % h.size
+	return (hasher(b) ^ h.r[0] ^ r) % h.size
 }
 
 func (c *chdHasher) Generate() (uint16, uint64) {

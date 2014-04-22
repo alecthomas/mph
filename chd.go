@@ -32,8 +32,6 @@ package mph
 import (
 	"bytes"
 	"encoding/binary"
-	"hash"
-	"hash/fnv"
 	"io"
 	"io/ioutil"
 )
@@ -48,23 +46,15 @@ type CHD struct {
 	// Final table of values.
 	keys   [][]byte
 	values [][]byte
-	*hasher
 }
 
-type hasher struct {
-	hasher hash.Hash64
-}
-
-func newHasher() *hasher {
-	return &hasher{
-		hasher: fnv.New64a(),
+func hasher(data []byte) uint64 {
+	var hash uint64 = 14695981039346656037
+	for _, c := range data {
+		hash ^= uint64(c)
+		hash *= 1099511628211
 	}
-}
-
-func (h *hasher) hash(b []byte) uint64 {
-	h.hasher.Reset()
-	h.hasher.Write(b)
-	return h.hasher.Sum64()
+	return hash
 }
 
 // Read a serialized CHD.
@@ -78,9 +68,7 @@ func Read(r io.Reader) (*CHD, error) {
 
 // Mmap creates a new CHD aliasing the CHD structure over an existing byte region (typically mmapped).
 func Mmap(b []byte) (*CHD, error) {
-	c := &CHD{
-		hasher: newHasher(),
-	}
+	c := &CHD{}
 
 	bi := &sliceReader{b: b}
 
@@ -110,7 +98,7 @@ func Mmap(b []byte) (*CHD, error) {
 // Get an entry from the hash table.
 func (c *CHD) Get(key []byte) []byte {
 	r0 := c.r[0]
-	h := c.hash(key) ^ r0
+	h := hasher(key) ^ r0
 	i := h % uint64(len(c.indices))
 	ri := c.indices[i]
 	// This can occur if there were unassigned slots in the hash table.
