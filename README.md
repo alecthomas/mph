@@ -25,14 +25,14 @@ for k, v := range data {
 }
 h, _ := b.Build()
 w, _ := os.Create("data.idx")
-b, _ := h.Write(w)
+_ := h.Write(w)
 ```
 
 Deserializing the hash table and performing lookups:
 
 ```go
 r, _ := os.Open("data.idx")
-h, _ := h.Read(r)
+h, _ := mph.Read(r)
 
 v := h.Get([]byte("some key"))
 if v == nil {
