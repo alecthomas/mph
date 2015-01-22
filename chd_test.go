@@ -79,6 +79,39 @@ func TestCHDSerialization(t *testing.T) {
 	}
 }
 
+func TestCHDSerialization_empty(t *testing.T) {
+	cb := Builder()
+	m, err := cb.Build()
+	assert.NoError(t, err)
+	w := &bytes.Buffer{}
+	err = m.Write(w)
+	assert.NoError(t, err)
+
+	n, err := Mmap(w.Bytes())
+	assert.NoError(t, err)
+	assert.Equal(t, n.r, m.r)
+	assert.Equal(t, n.indices, m.indices)
+	assert.Equal(t, n.keys, m.keys)
+	assert.Equal(t, n.values, m.values)
+}
+
+func TestCHDSerialization_one(t *testing.T) {
+	cb := Builder()
+	cb.Add([]byte("k"), []byte("v"))
+	m, err := cb.Build()
+	assert.NoError(t, err)
+	w := &bytes.Buffer{}
+	err = m.Write(w)
+	assert.NoError(t, err)
+
+	n, err := Mmap(w.Bytes())
+	assert.NoError(t, err)
+	assert.Equal(t, n.r, m.r)
+	assert.Equal(t, n.indices, m.indices)
+	assert.Equal(t, n.keys, m.keys)
+	assert.Equal(t, n.values, m.values)
+}
+
 func BenchmarkBuiltinMap(b *testing.B) {
 	keys := []string{}
 	d := map[string]string{}
