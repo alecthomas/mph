@@ -14,6 +14,9 @@ type sliceReader struct {
 
 func (b *sliceReader) Read(size uint64) []byte {
 	b.start, b.end = b.end, b.end+size
+	if b.start == b.end {
+		return nil
+	}
 	return b.b[b.start:b.end]
 }
 

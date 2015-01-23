@@ -89,11 +89,12 @@ func tryHash(hasher *chdHasher, seen map[uint64]bool, keys [][]byte, values [][]
 }
 
 func (b *CHDBuilder) Build() (*CHD, error) {
-	n := uint64(len(b.keys))
-	m := n / 2
+	const c = 2
+	m := uint64(len(b.keys))
 	if m == 0 {
 		m = 1
 	}
+	n := 1 + c*m
 
 	keys := make([][]byte, n)
 	values := make([][]byte, n)
