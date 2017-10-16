@@ -1,7 +1,7 @@
 // Package mph is a Go implementation of the compress, hash and displace (CHD)
 // minimal perfect hash algorithm.
 //
-// See http://csourceforge.net/papers/esa09.pdf for details.
+// See http://cmph.sourceforge.net/papers/esa09.pdf for details.
 //
 // To create and serialize a hash table:
 //
