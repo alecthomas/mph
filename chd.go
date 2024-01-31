@@ -5,23 +5,23 @@
 //
 // To create and serialize a hash table:
 //
-//		b := mph.Builder()
-// 		for k, v := range data {
-// 			b.Add(k, v)
-// 		}
-// 		h, _ := b.Build()
-// 		w, _ := os.Create("data.idx")
-// 		b, _ := h.Write(w)
+//	b := mph.Builder()
+//	for k, v := range data {
+//		b.Add(k, v)
+//	}
+//	h, _ := b.Build()
+//	w, _ := os.Create("data.idx")
+//	b, _ := h.Write(w)
 //
 // To read from the hash table:
 //
-//		r, _ := os.Open("data.idx")
-//		h, _ := h.Read(r)
+//	r, _ := os.Open("data.idx")
+//	h, _ := h.Read(r)
 //
-//		v := h.Get([]byte("some key"))
-//		if v == nil {
-//		    // Key not found
-//		}
+//	v := h.Get([]byte("some key"))
+//	if v == nil {
+//	    // Key not found
+//	}
 //
 // MMAP is also indirectly supported, by deserializing from a byte
 // slice and slicing the keys and values.
