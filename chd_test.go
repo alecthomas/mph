@@ -43,6 +43,14 @@ func init() {
 	}
 }
 
+func cmpDataSlice(t *testing.T, cl, cr *CHD, l, r []dataSlice) {
+	t.Helper()
+	assert.Equal(t, len(l), len(r))
+	for i := 0; len(l) > i; i++ {
+		assert.Equal(t, cl.slice(l[i]), cr.slice(r[i]))
+	}
+}
+
 func TestCHDBuilder(t *testing.T) {
 	b := Builder()
 	for k, v := range sampleData {
@@ -72,8 +80,8 @@ func TestCHDSerialization(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, n.r, m.r)
 	assert.Equal(t, n.indices, m.indices)
-	assert.Equal(t, n.keys, m.keys)
-	assert.Equal(t, n.values, m.values)
+	cmpDataSlice(t, n, m, n.keys, m.keys)
+	cmpDataSlice(t, n, m, n.values, m.values)
 	for _, v := range words {
 		assert.Equal(t, []byte(v), n.Get([]byte(v)))
 	}
@@ -91,8 +99,8 @@ func TestCHDSerialization_empty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, n.r, m.r)
 	assert.Equal(t, n.indices, m.indices)
-	assert.Equal(t, n.keys, m.keys)
-	assert.Equal(t, n.values, m.values)
+	cmpDataSlice(t, n, m, n.keys, m.keys)
+	cmpDataSlice(t, n, m, n.values, m.values)
 }
 
 func TestCHDSerialization_one(t *testing.T) {
@@ -108,8 +116,8 @@ func TestCHDSerialization_one(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, n.r, m.r)
 	assert.Equal(t, n.indices, m.indices)
-	assert.Equal(t, n.keys, m.keys)
-	assert.Equal(t, n.values, m.values)
+	cmpDataSlice(t, n, m, n.keys, m.keys)
+	cmpDataSlice(t, n, m, n.values, m.values)
 }
 
 func BenchmarkBuiltinMap(b *testing.B) {

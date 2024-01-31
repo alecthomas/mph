@@ -1,6 +1,7 @@
 package mph
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -164,11 +165,24 @@ nextBucket:
 	// println("keys:", len(table))
 	// println("hash functions:", len(hasher.r))
 
+	keylist := make([]dataSlice, len(b.keys))
+	valuelist := make([]dataSlice, len(b.values))
+	var buf bytes.Buffer
+	for i, k := range keys {
+		keylist[i].start = uint64(buf.Len())
+		buf.Write(k)
+		keylist[i].end = uint64(buf.Len())
+		valuelist[i].start = uint64(buf.Len())
+		buf.Write(values[i])
+		valuelist[i].end = uint64(buf.Len())
+	}
+
 	return &CHD{
 		r:       hasher.r,
 		indices: indices,
-		keys:    keys,
-		values:  values,
+		mmap:    buf.Bytes(),
+		keys:    keylist,
+		values:  valuelist,
 	}, nil
 }
 
