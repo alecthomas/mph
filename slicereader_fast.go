@@ -15,23 +15,26 @@ import (
 // written in little endian form, this of course means that this will only
 // work on little-endian architectures.
 type sliceReader struct {
-	b          []byte
-	start, end uint64
+	b   []byte
+	pos uint64
 }
 
 func (b *sliceReader) Read(size uint64) []byte {
-	b.start, b.end = b.end, b.end+size
-	return b.b[b.start:b.end]
+	start := b.pos
+	b.pos += size
+	return b.b[start:b.pos]
 }
 
 func (b *sliceReader) ReadUint64Array(n uint64) []uint64 {
-	b.start, b.end = b.end, b.end+n*8
-	return unsafeslice.Uint64SliceFromByteSlice(b.b[b.start:b.end])
+	start := b.pos
+	b.pos += n * 8
+	return unsafeslice.Uint64SliceFromByteSlice(b.b[start:b.pos])
 }
 
 func (b *sliceReader) ReadUint16Array(n uint64) []uint16 {
-	b.start, b.end = b.end, b.end+n*2
-	return unsafeslice.Uint16SliceFromByteSlice(b.b[b.start:b.end])
+	start := b.pos
+	b.pos += n * 2
+	return unsafeslice.Uint16SliceFromByteSlice(b.b[start:b.pos])
 }
 
 // Despite returning a uint64, this actually reads a uint32. All table indices
