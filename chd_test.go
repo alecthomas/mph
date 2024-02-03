@@ -27,7 +27,7 @@ var (
 )
 
 func init() {
-	f, err := os.Open("/usr/share/dict/words")
+	f, err := os.Open("testdata/words")
 	if err != nil {
 		panic(err)
 	}
