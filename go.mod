@@ -1,6 +1,6 @@
 module github.com/alecthomas/mph
 
-go 1.21.6
+go 1.17
 
 require (
 	github.com/alecthomas/unsafeslice v0.2.0
