@@ -43,11 +43,19 @@ func init() {
 	}
 }
 
-func cmpDataSlice(t *testing.T, cl, cr *CHD, l, r []dataSlice) {
+func cmpKeys(t *testing.T, cl, cr *CHD) {
 	t.Helper()
-	assert.Equal(t, len(l), len(r))
-	for i := 0; len(l) > i; i++ {
-		assert.Equal(t, cl.slice(l[i]), cr.slice(r[i]))
+	assert.Equal(t, cl.numEntries, cr.numEntries)
+	for i := 0; int(cl.numEntries) > i; i++ {
+		assert.Equal(t, cl.getKey(i), cr.getKey(i))
+	}
+}
+
+func cmpValues(t *testing.T, cl, cr *CHD) {
+	t.Helper()
+	assert.Equal(t, cl.numEntries, cr.numEntries)
+	for i := 0; int(cl.numEntries) > i; i++ {
+		assert.Equal(t, cl.getValue(i), cr.getValue(i))
 	}
 }
 
@@ -58,7 +66,7 @@ func TestCHDBuilder(t *testing.T) {
 	}
 	c, err := b.Build()
 	assert.NoError(t, err)
-	assert.Equal(t, 7, len(c.keys))
+	assert.Equal(t, 7, int(c.numEntries))
 	for k, v := range sampleData {
 		assert.Equal(t, []byte(v), c.Get([]byte(k)))
 	}
@@ -66,58 +74,88 @@ func TestCHDBuilder(t *testing.T) {
 }
 
 func TestCHDSerialization(t *testing.T) {
-	cb := Builder()
-	for _, v := range words {
-		cb.Add([]byte(v), []byte(v))
+	write := func(c *CHD, w io.Writer) error {
+		return c.Write(w)
 	}
-	m, err := cb.Build()
-	assert.NoError(t, err)
-	w := &bytes.Buffer{}
-	err = m.Write(w)
-	assert.NoError(t, err)
+	f := func(t *testing.T) {
+		cb := Builder()
+		for _, v := range words {
+			cb.Add([]byte(v), []byte(v))
+		}
+		m, err := cb.Build()
+		assert.NoError(t, err)
+		w := &bytes.Buffer{}
+		err = write(m, w)
+		assert.NoError(t, err)
 
-	n, err := Mmap(w.Bytes())
-	assert.NoError(t, err)
-	assert.Equal(t, n.r, m.r)
-	assert.Equal(t, n.indices, m.indices)
-	cmpDataSlice(t, n, m, n.keys, m.keys)
-	cmpDataSlice(t, n, m, n.values, m.values)
-	for _, v := range words {
-		assert.Equal(t, []byte(v), n.Get([]byte(v)))
+		n, err := Mmap(w.Bytes())
+		assert.NoError(t, err)
+		assert.Equal(t, n.r, m.r)
+		assert.Equal(t, n.indices, m.indices)
+		cmpKeys(t, n, m)
+		cmpValues(t, n, m)
+		for _, v := range words {
+			assert.Equal(t, []byte(v), n.Get([]byte(v)))
+		}
 	}
+	t.Run("Write", f)
+	write = func(c *CHD, w io.Writer) error {
+		return c.WriteV2(w)
+	}
+	t.Run("WriteV2", f)
 }
 
 func TestCHDSerialization_empty(t *testing.T) {
-	cb := Builder()
-	m, err := cb.Build()
-	assert.NoError(t, err)
-	w := &bytes.Buffer{}
-	err = m.Write(w)
-	assert.NoError(t, err)
+	write := func(c *CHD, w io.Writer) error {
+		return c.Write(w)
+	}
+	f := func(t *testing.T) {
+		cb := Builder()
+		m, err := cb.Build()
+		assert.NoError(t, err)
+		w := &bytes.Buffer{}
+		err = write(m, w)
+		assert.NoError(t, err)
 
-	n, err := Mmap(w.Bytes())
-	assert.NoError(t, err)
-	assert.Equal(t, n.r, m.r)
-	assert.Equal(t, n.indices, m.indices)
-	cmpDataSlice(t, n, m, n.keys, m.keys)
-	cmpDataSlice(t, n, m, n.values, m.values)
+		n, err := Mmap(w.Bytes())
+		assert.NoError(t, err)
+		assert.Equal(t, n.r, m.r)
+		assert.Equal(t, n.indices, m.indices)
+		cmpKeys(t, n, m)
+		cmpValues(t, n, m)
+	}
+	t.Run("Write", f)
+	write = func(c *CHD, w io.Writer) error {
+		return c.WriteV2(w)
+	}
+	t.Run("WriteV2", f)
 }
 
 func TestCHDSerialization_one(t *testing.T) {
-	cb := Builder()
-	cb.Add([]byte("k"), []byte("v"))
-	m, err := cb.Build()
-	assert.NoError(t, err)
-	w := &bytes.Buffer{}
-	err = m.Write(w)
-	assert.NoError(t, err)
+	write := func(c *CHD, w io.Writer) error {
+		return c.Write(w)
+	}
+	f := func(t *testing.T) {
+		cb := Builder()
+		cb.Add([]byte("k"), []byte("v"))
+		m, err := cb.Build()
+		assert.NoError(t, err)
+		w := &bytes.Buffer{}
+		err = write(m, w)
+		assert.NoError(t, err)
 
-	n, err := Mmap(w.Bytes())
-	assert.NoError(t, err)
-	assert.Equal(t, n.r, m.r)
-	assert.Equal(t, n.indices, m.indices)
-	cmpDataSlice(t, n, m, n.keys, m.keys)
-	cmpDataSlice(t, n, m, n.values, m.values)
+		n, err := Mmap(w.Bytes())
+		assert.NoError(t, err)
+		assert.Equal(t, n.r, m.r)
+		assert.Equal(t, n.indices, m.indices)
+		cmpKeys(t, n, m)
+		cmpValues(t, n, m)
+	}
+	t.Run("Write", f)
+	write = func(c *CHD, w io.Writer) error {
+		return c.WriteV2(w)
+	}
+	t.Run("WriteV2", f)
 }
 
 func BenchmarkBuiltinMap(b *testing.B) {

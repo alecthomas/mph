@@ -1,7 +1,6 @@
 package mph
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -173,25 +172,44 @@ nextBucket:
 	// println("keys:", len(table))
 	// println("hash functions:", len(hasher.r))
 
-	keylist := make([]dataSlice, len(b.keys))
-	valuelist := make([]dataSlice, len(b.values))
-	var buf bytes.Buffer
-	for i, k := range keys {
-		keylist[i].start = uint64(buf.Len())
-		buf.Write(k)
-		keylist[i].end = uint64(buf.Len())
-		valuelist[i].start = uint64(buf.Len())
-		buf.Write(values[i])
-		valuelist[i].end = uint64(buf.Len())
+	ret := &CHD{
+		r:          hasher.r,
+		indices:    indices,
+		numEntries: uint64(len(b.keys)),
 	}
+	ret.allKeysAreLength, ret.keyOffsets, ret.keyData = serializeByteSlices(keys)
+	ret.allValuesAreLength, ret.valueOffsets, ret.valueData = serializeByteSlices(values)
+	return ret, nil
+}
 
-	return &CHD{
-		r:       hasher.r,
-		indices: indices,
-		mmap:    buf.Bytes(),
-		keys:    keylist,
-		values:  valuelist,
-	}, nil
+func serializeByteSlices(keysOrValues [][]byte) (allSameLength uint64, offsets []uint64, data []byte) {
+	if len(keysOrValues) == 0 {
+		// The smallest encoding is pretending all zero keys/values have length 1 (but there are none).
+		return 1, nil, nil
+	}
+	allKeysAreLength := len(keysOrValues[0])
+	for _, k := range keysOrValues[1:] {
+		if len(k) != allKeysAreLength {
+			allKeysAreLength = 0
+			break
+		}
+	}
+	if allKeysAreLength != 0 {
+		data = make([]byte, 0, len(keysOrValues)*allKeysAreLength)
+	} else {
+		offsets = make([]uint64, len(keysOrValues)+1)
+		var offset uint64
+		for i, k := range keysOrValues {
+			offsets[i] = offset
+			offset += uint64(len(k))
+		}
+		offsets[len(offsets)-1] = offset
+		data = make([]byte, 0, offset)
+	}
+	for _, k := range keysOrValues {
+		data = append(data, k...)
+	}
+	return uint64(allKeysAreLength), offsets, data
 }
 
 func newCHDHasher(size, buckets uint64, seed int64, seeded bool) *chdHasher {
